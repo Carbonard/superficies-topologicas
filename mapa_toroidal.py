@@ -1,6 +1,7 @@
 import pygame
 from math import sqrt
 from random import random
+from pathlib import Path
 
 pygame.init()
 
@@ -16,12 +17,29 @@ pygame.display.set_caption("EL Multidejo de la Locura")
 clock = pygame.time.Clock()
 
 def imagen(nombre,ancho,alto):
-    return pygame.transform.scale(pygame.image.load(nombre).convert_alpha(),(ancho,alto))
+    return pygame.transform.scale(pygame.image.load(Path("imagenes",nombre)).convert_alpha(),(ancho,alto))
 
 # __________________________________________________ DEFINICIÓN DE CLASES __________________________________________________
 
+# Decorador
+def en_mapas_adyacentes(func):
+    """Añadir para recorrer todos los mapas siendo:  
+        # i=self.x + k1*ancho_mapa  
+        # j=self.y + k2*alto_mapa
+        con k1,k2 in [-1,0,1]"""
+    def wrapper(self, *args, **kwargs):
+        for k1 in [-1, 0, 1]:
+            for k2 in [-1, 0, 1]:
+                res= func(self, *args, i=self.x + k1*ancho_mapa, j=self.y + k2*alto_mapa, **kwargs)
+                if res == True:
+                    return True
+    return wrapper
+
+def parametros_hitbox(x,y,ancho,alto):
+    return (x,y,ancho,alto)
+
 # -------------------------------------------------- MAPA --------------------------------------------------
-class mapa:
+class Mapa:
     def __init__(self, x, y, ancho=ancho_mapa, alto=alto_mapa):
         self.posicion = (x, y)
         self.ancho = ancho
@@ -41,29 +59,15 @@ class mapa:
     def mostrar(self):
         pantalla.blit(self.area,self.posicion)
 
-# Decorador
-def en_mapas_adyacentes(func):
-    """Añadir para recorrer todos los mapas siendo:  
-        # i=self.x_fijo + k1*ancho_mapa  
-        # j=self.y_fijo + k2*alto_mapa
-        con k1,k2 in [-1,0,1]"""
-    def wrapper(self, *args, **kwargs):
-        for k1 in [-1, 0, 1]:
-            for k2 in [-1, 0, 1]:
-                res= func(self, *args, i=self.x_fijo + k1*ancho_mapa, j=self.y_fijo + k2*alto_mapa, **kwargs)
-                if res == True:
-                    return True
-    return wrapper
-
 # -------------------------------------------------- SUPERMAPA --------------------------------------------------
-class super_mapa:
+class SuperMapa:
     def __init__(self):
         dim_pantalla_real = pantalla.get_size()
         posicion_mapa_central = (
             (dim_pantalla_real[0]-ancho_mapa)/2,
             (dim_pantalla_real[1]-alto_mapa)/2
         )
-        self.mapas = [[mapa(posicion_mapa_central[0]+i*ancho_mapa,posicion_mapa_central[1]+j*alto_mapa) for j in [-1,0,1]] for i in [-1,0,1]]
+        self.mapas = [[Mapa(posicion_mapa_central[0]+i*ancho_mapa,posicion_mapa_central[1]+j*alto_mapa) for j in [-1,0,1]] for i in [-1,0,1]]
         
     def actualizar_posicion(self):
         dim_pantalla_real = pantalla.get_size()
@@ -71,7 +75,7 @@ class super_mapa:
             (dim_pantalla_real[0]-ancho_mapa)/2,
             (dim_pantalla_real[1]-alto_mapa)/2
         )
-        self.mapas = [[mapa(posicion_mapa_central[0]+i*ancho_mapa,posicion_mapa_central[1]+j*alto_mapa) for j in [-1,0,1]] for i in [-1,0,1]]
+        self.mapas = [[Mapa(posicion_mapa_central[0]+i*ancho_mapa,posicion_mapa_central[1]+j*alto_mapa) for j in [-1,0,1]] for i in [-1,0,1]]
 
     def crear_fondo(self):
         for mapas in self.mapas:
@@ -83,7 +87,7 @@ class super_mapa:
             for mapa in mapas:
                 mapa.mostrar()
 
-super_mapa_fijo = super_mapa()
+super_mapa_fijo = SuperMapa()
 
 # -------------------------------------------------- OBJETO --------------------------------------------------
 class Objeto:
@@ -100,17 +104,17 @@ class Objeto:
         if self.visible and self.imagen!=None:
             mapa.area.blit(self.imagen,(self.x,self.y))
 
+
     def mostrar(self):
         for mapas in super_mapa_fijo.mapas:
             for mapa in mapas:
                 self.mostrar_local(mapa)
     @property
     def hitbox(self):
-        return pygame.Rect(self.x,self.y,self.ancho,self.alto)
+        return pygame.Rect(parametros_hitbox(self.x,self.y,self.ancho,self.alto))
     
-    # def colisiona_con(self, cosa):
-    #     print(self.nombre,"...........",cosa.nombre,":",self.hitbox.colliderect(cosa.hitbox))
-    #     return cosa.hitbox.colliderect(self.hitbox)
+    def colisiona_con(self, cosa):
+        return cosa.hitbox.colliderect(self.hitbox)
 
 # -------------------------------------------------- OBJETO RANDOM --------------------------------------------------
 class ObjetoRandom(Objeto):
@@ -123,14 +127,10 @@ class ObjetoRandom(Objeto):
         self.colisionables = colisionables
 
     def aparecer(self):
-        # print("inicio aparecer")
-        # print([self.colisiona_con(colisionable) for colisionable in self.colisionables])
-        # while any(self.colisiona_con(colisionable) for colisionable in self.colisionables):
-        self.x=random()*(ancho_mapa-self.ancho)
-        self.y=random()*(alto_mapa-self.alto)
+        while any(self.colisiona_con(colisionable) for colisionable in self.colisionables):
+            self.x=random()*(ancho_mapa-self.ancho)
+            self.y=random()*(alto_mapa-self.alto)
         self.visible=True
-        # print("acaba aparecer con:")
-        # print(self.x,self.y)
     
     def desaparecer(self):
         self.visible=False
@@ -143,47 +143,40 @@ class Movil(Objeto):
         self.x_dinamico = x
         self.y_dinamico = y
     @property
-    def x_fijo(self):
-        return self.x%ancho_mapa
-    @property
-    def y_fijo(self):
-        return self.y%alto_mapa
-    @property
-    def hitbox_fijo(self):
-        return pygame.Rect(self.x_fijo, self.y_fijo, self.ancho, self.alto)
+    def hitbox_dinamico(self):
+        return pygame.Rect(self.x_dinamico, self.y_dinamico, self.ancho, self.alto)
     def mover_arriba(self,v=1):
         """v = modificación de velocidad"""
         self.y -= self.velocidad*v
-        if self.y<alto_mapa:
-            self.y += alto_mapa
+        self.y_dinamico -= self.velocidad*v
+        self.y %= alto_mapa
     def mover_abajo(self,v=1):
         """v = modificación de velocidad"""
         self.y += self.velocidad*v
-        if self.y>alto_mapa:
-            self.y -= alto_mapa
+        self.y_dinamico += self.velocidad*v
+        self.y %= alto_mapa
     def mover_izquierda(self,v=1):
         """v = modificación de velocidad"""
         self.x -= self.velocidad*v
-        if self.x<ancho_mapa:
-            self.x += ancho_mapa
+        self.x_dinamico -= self.velocidad*v
+        self.x %= ancho_mapa
     def mover_derecha(self,v=1):
         """v = modificación de velocidad"""
         self.x += self.velocidad*v
-        if self.x>ancho_mapa:
-            self.x -= ancho_mapa
+        self.x_dinamico += self.velocidad*v
+        self.x %= ancho_mapa
     
     @en_mapas_adyacentes
-    def mostrar_local(self, mapa: mapa, i, j):
+    def mostrar_local(self, mapa: Mapa, i, j):
         mapa.area.blit(self.imagen,(i,j))
         
-        transparent_surface = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
-        pygame.draw.rect(transparent_surface, (0, 200, 0, 100),
-                    transparent_surface.get_rect())
-        mapa.area.blit(transparent_surface,(i,j))
+        # transparent_surface = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        # pygame.draw.rect(transparent_surface, (0, 200, 0, 100),transparent_surface.get_rect())
+        # mapa.area.blit(transparent_surface,(i,j))
     
     @en_mapas_adyacentes
     def colisiona_con(self, cosa: Objeto, i=0, j=0):
-        return pygame.Rect(i,j, self.ancho, self.alto).colliderect(cosa.hitbox)
+        return pygame.Rect(parametros_hitbox(i,j, self.ancho, self.alto)).colliderect(cosa.hitbox)
 
 # -------------------------------------------------- PERSONAJE --------------------------------------------------
 
@@ -214,27 +207,29 @@ class Cuadrado(Movil):
     def __init__(self, nombre="", x=0, y=0, ancho=50, alto=50, velocidad=5, color=(250,250,250), visible=False):
         super().__init__(nombre, x=x, y=y, ancho=ancho, alto=alto, velocidad=velocidad, visible=visible)
         self.color=color
-    def mostrar_local(self, mapa: mapa):
+    def mostrar_local(self, mapa: Mapa):
         for i in [-1,0,1]:
             for j in [-1,0,1]:
                 pygame.draw.rect(
                     mapa.area,
                     self.color,
-                    (self.x_fijo + i*ancho_mapa,
-                     self.y_fijo + j*alto_mapa,
+                    (self.x + i*ancho_mapa,
+                     self.y + j*alto_mapa,
                      self.ancho, self.alto
                     ))
 
+#__________________________________________________ CREACION PERSONAJE __________________________________________________
+
 # cuby = Cuadrado()
 
-el_dejo = Personaje(nombre="El Dejo", x=100, y=100, ancho=200, alto=200,
+el_dejo = Personaje(nombre="El Dejo", x=50, y=50, ancho=150, alto=150,
                     img = "dejo_cara.png",
                     img_mov = "dejo_caminando.png")
 
 oso = Movil(nombre="Oso goloso",
             x=ancho_mapa//2, y=alto_mapa//2,
-            ancho=300, alto=300,
-            img="oso.png", visible=True, velocidad=7)
+            ancho=200, alto=200,
+            img="oso.png", visible=True, velocidad=5)
 
 manzana = ObjetoRandom(
                         nombre="Manzana",
@@ -255,6 +250,8 @@ zapatillas = ObjetoRandom(
 #__________________________________________________ BUCLE PRINCIPAL __________________________________________________
 
 racha_perdidas=0
+total_manzanas_jugador=0
+
 jugando = True
 while jugando:
     for evento in pygame.event.get():
@@ -272,31 +269,30 @@ while jugando:
     if keys[pygame.K_DOWN]: el_dejo.mover_abajo()
     
     if oso.colisiona_con(manzana):
-        print("oso colisiona manzana")
         racha_perdidas += 1
-        print(racha_perdidas)
+        oso.velocidad += 0.3
         manzana.aparecer()
         if racha_perdidas==5:
             zapatillas.aparecer()
-            print("Que cojones")
     if el_dejo.colisiona_con(manzana):
-        print("dejo colisiona manzana")
+        total_manzanas_jugador +=1
         racha_perdidas = 0
-        print(racha_perdidas)
         zapatillas.desaparecer()
         manzana.aparecer()
+        # if random()*100//1%5==0:
+        #     zapatillas.aparecer()
     if zapatillas.visible and el_dejo.colisiona_con(zapatillas):
-        print("dejo colisiona brambas")
+        racha_perdidas = 0
         zapatillas.desaparecer()
-        el_dejo.velocidad += 2
+        el_dejo.velocidad += 10
     
-    if oso.x_fijo+oso.ancho<manzana.x:
+    if oso.x+oso.ancho<manzana.x+5:
         oso.mover_derecha()
-    elif oso.x_fijo>manzana.x:
+    elif oso.x>manzana.x-5:
         oso.mover_izquierda()
-    if oso.y_fijo+oso.alto<manzana.y:
+    if oso.y+oso.alto<manzana.y+5:
         oso.mover_abajo()
-    elif oso.y_fijo>manzana.y:
+    elif oso.y>manzana.y-5:
         oso.mover_arriba()
 
     pantalla.fill((0, 0, 0))
@@ -309,5 +305,12 @@ while jugando:
     super_mapa_fijo.mostrar()
     pygame.display.flip()
     clock.tick(60)
+    if oso.velocidad>200:
+        jugando = False
+
+print("Has obtenido",total_manzanas_jugador,"manzanas.")
 
 pygame.quit()
+
+# Para el ejecutable:
+# input("Pulsa enter para cerrar.")
