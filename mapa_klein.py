@@ -35,15 +35,30 @@ class InformacionVentana():
         self.y = (dim_pantalla_real[1]-general.alto_mapa)//2
 ventana = InformacionVentana()
 
-class Toroidal():
+class Klein():
     def __init__(self):
-        pass
+        self.mundo_correcto=True
     @staticmethod
     def posiciones(i,j,x,y): # ventana.x+i*general.ancho_mapa marca la esquina de la celda correspondiente
-        return (i*general.ancho_mapa + x,
-                j*general.alto_mapa + y
-                )
-universo=Toroidal()
+        if i%2==1:
+            return (i*general.ancho_mapa + x,
+                    j*general.alto_mapa + y)
+        else:
+            return (i*general.ancho_mapa + x,
+                    j*general.alto_mapa + general.alto_mapa-y)
+
+    def invertir(self,i,j):
+        return False, i%2==0
+        
+    def salir_por_izquierda(self,x,y,inv):
+        return x+general.ancho_mapa, general.alto_mapa-y, (False, not inv[1])
+    def salir_por_derecha(self,x,y,inv):
+        return x-general.ancho_mapa, general.alto_mapa-y, (False, not inv[1])
+    def salir_por_arriba(self,x,y,inv):
+        return x, y+general.alto_mapa, inv
+    def salir_por_abajo(self,x,y,inv):
+        return x, y-general.alto_mapa, inv
+universo=Klein()
 
 class Fondos():
     def __init__(self):
@@ -107,6 +122,7 @@ class Objeto:
         self.y=y
         self.ancho = ancho
         self.alto = alto
+        self.invertido = (False,False)
         if img != None:
             self.imagen = imagen(img,ancho,alto)
         else:
@@ -116,13 +132,15 @@ class Objeto:
     def posicionar(self,x,y):# Para que la posición represente el centro del objeto
         return (x-self.ancho//2, y-self.alto//2)
 
-    def mostrar_individual(self,x,y):
+    def mostrar_individual(self,x,y,invertir_x=False, invertir_y=False):
         if self.visible:
             if self.imagen!=None:
-                super_mapa.superficie.blit(self.imagen,self.posicionar(x,y))
+                if self.invertido[0]: invertir_x = not invertir_x
+                if self.invertido[1]: invertir_y = not invertir_y
+                super_mapa.superficie.blit(pygame.transform.flip(self.imagen,invertir_x,invertir_y),self.posicionar(x,y))
             else:
                 pygame.draw.rect(
-                    super_mapa.superficie,
+                    pygame.transform.flip(super_mapa.superficie,invertir_x,invertir_y),
                     (250,250,250),
                     (*self.posicionar(x,y),
                      self.ancho, self.alto
@@ -131,7 +149,7 @@ class Objeto:
     def mostrar(self):
         for i in range(-1,2*general.n+2):
             for j in range(-1,2*general.m+2):
-                self.mostrar_individual(*universo.posiciones(i,j,self.x,self.y))
+                self.mostrar_individual(*universo.posiciones(i,j,self.x,self.y),*universo.invertir(i,j))
 
 # # -------------------------------------------------- OBJETO RANDOM --------------------------------------------------
 # class ObjetoRandom(Objeto):
@@ -159,27 +177,24 @@ class Movil(Objeto):
         self.velocidad = velocidad
         self.x_dinamico = x
         self.y_dinamico = y
-        
-    def mover_arriba(self):
-        """v = modificación de velocidad"""
-        self.y -= self.velocidad
-        self.y_dinamico -= self.velocidad
-        self.y %= general.alto_mapa
-    def mover_abajo(self):
-        """v = modificación de velocidad"""
-        self.y += self.velocidad
-        self.y_dinamico += self.velocidad
-        self.y %= general.alto_mapa
-    def mover_izquierda(self):
-        """v = modificación de velocidad"""
-        self.x -= self.velocidad
-        self.x_dinamico -= self.velocidad
-        self.x %= general.ancho_mapa
-    def mover_derecha(self):
-        """v = modificación de velocidad"""
-        self.x += self.velocidad
-        self.x_dinamico += self.velocidad
-        self.x %= general.ancho_mapa
+
+    def mover(self,direccion):
+        if self.invertido[0]:
+            self.x -= direccion[0]*self.velocidad
+        else:
+            self.x += direccion[0]*self.velocidad
+        if self.invertido[1]:
+            self.y -= direccion[1]*self.velocidad
+        else:
+            self.y += direccion[1]*self.velocidad
+        if self.x<0:
+            self.x , self.y, self.invertido = universo.salir_por_izquierda(self.x, self.y, self.invertido)
+        if self.x>general.ancho_mapa:
+            self.x , self.y, self.invertido = universo.salir_por_derecha(self.x, self.y, self.invertido)
+        if self.y>general.alto_mapa:
+            self.x , self.y, self.invertido = universo.salir_por_abajo(self.x, self.y, self.invertido)
+        if self.y<0:
+            self.x , self.y, self.invertido = universo.salir_por_arriba(self.x, self.y, self.invertido)
 
 # # -------------------------------------------------- PERSONAJE --------------------------------------------------
 
@@ -218,10 +233,10 @@ while jugando:
             ventana.actualizar_posicion()
     
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]: movil.mover_izquierda()
-    if keys[pygame.K_RIGHT]: movil.mover_derecha()
-    if keys[pygame.K_UP]: movil.mover_arriba()
-    if keys[pygame.K_DOWN]: movil.mover_abajo()
+    if keys[pygame.K_LEFT]: movil.mover((-1,0))
+    if keys[pygame.K_RIGHT]: movil.mover((1,0))
+    if keys[pygame.K_UP]: movil.mover((0,-1))
+    if keys[pygame.K_DOWN]: movil.mover((0,1))
 
     pantalla.fill((0, 0, 0))
     super_mapa.superficie.fill((0,200,0,0))
