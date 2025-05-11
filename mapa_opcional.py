@@ -18,13 +18,16 @@ class InformacionJuego():
         self.m = m # m columnas de celdas
 
         self.estado_de_juego = "menu inicial"
+        self.camara_subjetiva = True
+        self.celda_visible_i=1
+        self.celda_visible_j=1
 
         self.activo = True
         self.raton_clicado = False
         self.universo=None
 
 
-juego = InformacionJuego(900,700,3,3)
+juego = InformacionJuego(800,400,4,4)
 
 pantalla = pygame.display.set_mode(
     (juego.ancho_mapa,juego.alto_mapa),
@@ -46,6 +49,15 @@ class InformacionVentana():
         self.ancho, self.alto = pantalla.get_size()
         self.x = (self.ancho-juego.ancho_mapa)//2
         self.y = (self.alto-juego.alto_mapa)//2
+        if juego.camara_subjetiva:
+            self.x -= (jugador.x_visible-juego.ancho_mapa//2)# + (juego.celda_visible_j-1)*juego.ancho_mapa
+            self.y -= (jugador.y_visible-juego.alto_mapa//2)# + (juego.celda_visible_i-1)*juego.alto_mapa
+        # if juego.camara_subjetiva and juego.celda_visible_i>2:
+        #     # self.y -= juego.alto_mapa
+        #     juego.celda_visible_i=1
+        # if juego.camara_subjetiva and juego.celda_visible_j>2:
+        #     # self.x -= juego.ancho_mapa
+        #     juego.celda_visible_j=1
 
 
 # -------------------------------------------------- TIPOS DE UNIVERSO --------------------------------------------------
@@ -290,8 +302,6 @@ class Movil(Objeto):
     def __init__(self, nombre="", x=juego.ancho_mapa//2, y=juego.alto_mapa//2, ancho=0, alto=0, img=None, visible=False, velocidad=10):
         super().__init__(nombre, x, y, ancho, alto, img, visible)
         self.velocidad = velocidad
-        self.x_dinamico = x
-        self.y_dinamico = y
 
     def mover(self,direccion):
         # Moverse según si está invertido o no
@@ -315,6 +325,52 @@ class Movil(Objeto):
 
 # # -------------------------------------------------- PERSONAJE --------------------------------------------------
 
+class Jugador(Movil):
+    def __init__(self, nombre="", x=juego.ancho_mapa // 2, y=juego.alto_mapa // 2, ancho=0, alto=0, img=None, visible=False, velocidad=10):
+        super().__init__(nombre, x, y, ancho, alto, img, visible, velocidad)
+        self.x_visible = self.x
+        self.y_visible = self.y
+
+    def mover(self,direccion):
+        # Moverse según si está invertido o no
+        if self.invertido[0]:
+            self.x -= direccion[0]*self.velocidad
+        else:
+            self.x += direccion[0]*self.velocidad
+        if self.invertido[1]:
+            self.y -= direccion[1]*self.velocidad
+        else:
+            self.y += direccion[1]*self.velocidad
+            
+        self.x_visible += direccion[0]*self.velocidad
+
+        self.y_visible += direccion[1]*self.velocidad
+        # if juego.camara_subjetiva:
+        #     if self.invertido[0]:
+        #         ventana.x += direccion[0]*self.velocidad
+        #     else:
+        #         ventana.x -= direccion[0]*self.velocidad
+        #     if self.invertido[1]:
+        #         ventana.y += direccion[1]*self.velocidad
+        #     else:
+        #         ventana.y -= direccion[1]*self.velocidad
+        # Comprobar si se sale del mapa principal
+        if self.x<0:
+            self.x , self.y, self.invertido = juego.universo.salir_por_izquierda(self.x, self.y, self.invertido)
+            self.x_visible %= 2*juego.ancho_mapa
+        if self.x>juego.ancho_mapa:
+            self.x , self.y, self.invertido = juego.universo.salir_por_derecha(self.x, self.y, self.invertido)
+            self.x_visible %= 2*juego.ancho_mapa
+        if self.y>juego.alto_mapa:
+            self.x , self.y, self.invertido = juego.universo.salir_por_abajo(self.x, self.y, self.invertido)
+            self.y_visible %= 2*juego.alto_mapa
+        if self.y<0:
+            self.x , self.y, self.invertido = juego.universo.salir_por_arriba(self.x, self.y, self.invertido)
+            self.y_visible %= 2*juego.alto_mapa
+        if juego.camara_subjetiva:
+            ventana.actualizar_posicion()
+
+
 # class Personaje(Movil):
     
 #     def __init__(self, nombre="", x=0, y=0, ancho=0, alto=0, img=None, visible=False, velocidad=5, img_mov=None):
@@ -337,11 +393,10 @@ class Movil(Objeto):
     
 #     def cambiar_imagen(self, img):
 #         self.imagen = img
+jugador = Jugador(ancho=60,alto=60,visible=True)
 ventana = InformacionVentana()
 juego.universo=UniversoToroidal()
 super_mapa = SuperMapa()
-objeto = Objeto(ancho=100,alto=100,visible=True)
-movil = Movil(ancho=60,alto=60,visible=True)
 mapas = Fondos()
 class Menu:
     def __init__(self, opciones):
@@ -556,16 +611,16 @@ menu_mapas = MenuMapas()
 def jugar():
     
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]: movil.mover((-1,0))
-    if keys[pygame.K_RIGHT]: movil.mover((1,0))
-    if keys[pygame.K_UP]: movil.mover((0,-1))
-    if keys[pygame.K_DOWN]: movil.mover((0,1))
+    if keys[pygame.K_LEFT]: jugador.mover((-1,0))
+    if keys[pygame.K_RIGHT]: jugador.mover((1,0))
+    if keys[pygame.K_UP]: jugador.mover((0,-1))
+    if keys[pygame.K_DOWN]: jugador.mover((0,1))
     if keys[pygame.K_p]: juego.estado_de_juego="pausa"
 
     pantalla.fill((0, 0, 0))
     super_mapa.superficie.fill((0,200,0,0))
     mapas.mostrar()
-    movil.mostrar()
+    jugador.mostrar()
     super_mapa.mostrar()
 
 
