@@ -17,6 +17,7 @@ class InformacionJuego():
         self.n = n # n filas de celdas
         self.m = m # m columnas de celdas
 
+        self.jugador = None
         self.estado_de_juego = "menu inicial"
         self.camara_subjetiva = True
         self.celda_visible_i=1
@@ -49,9 +50,9 @@ class InformacionVentana():
         self.ancho, self.alto = pantalla.get_size()
         self.x = (self.ancho-juego.ancho_mapa)//2
         self.y = (self.alto-juego.alto_mapa)//2
-        if juego.camara_subjetiva:
-            self.x -= (jugador.x_visible-juego.ancho_mapa//2)# + (juego.celda_visible_j-1)*juego.ancho_mapa
-            self.y -= (jugador.y_visible-juego.alto_mapa//2)# + (juego.celda_visible_i-1)*juego.alto_mapa
+        if juego.estado_de_juego == "jugando" and juego.camara_subjetiva:
+            self.x -= (juego.jugador.x_visible-juego.ancho_mapa//2)# + (juego.celda_visible_j-1)*juego.ancho_mapa
+            self.y -= (juego.jugador.y_visible-juego.alto_mapa//2)# + (juego.celda_visible_i-1)*juego.alto_mapa
         # if juego.camara_subjetiva and juego.celda_visible_i>2:
         #     # self.y -= juego.alto_mapa
         #     juego.celda_visible_i=1
@@ -393,11 +394,7 @@ class Jugador(Movil):
     
 #     def cambiar_imagen(self, img):
 #         self.imagen = img
-jugador = Jugador(ancho=60,alto=60,visible=True)
-ventana = InformacionVentana()
-juego.universo=UniversoToroidal()
-super_mapa = SuperMapa()
-mapas = Fondos()
+
 class Menu:
     def __init__(self, opciones):
         self.ancho = ventana.ancho*2//3
@@ -476,7 +473,15 @@ class Menu:
     def agregar_opciones(self,opciones: list):
         self.opciones.append(opciones)
 
-
+class MenuInicio(Menu):
+    def __init__(self, opciones):
+        super().__init__(opciones)
+    
+    def pulsar_boton(self, opcion):
+        juego.jugador = Jugador(ancho=60,alto=60,visible=True)
+        juego.celda_visible_i=1
+        juego.celda_visible_j=1
+        ventana.actualizar_posicion()
 
 def dibujar_toro_animado(surface: pygame.SurfaceType):
     # Parámetros ajustados para que quepa bien
@@ -600,7 +605,13 @@ class MenuMapas(Menu):
         mapas.crear_fondo()
 
 
-menu_inicial = Menu(opciones = [("jugando", "Empezar a jugar"),
+juego.jugador = Jugador(ancho=60,alto=60,visible=True)
+ventana = InformacionVentana()
+juego.universo=UniversoToroidal()
+super_mapa = SuperMapa()
+mapas = Fondos()
+
+menu_inicial = MenuInicio(opciones = [("jugando", "Empezar a jugar"),
                                 ("mapas", "Elegir mapa"),
                                 ("cerrar", "Cerrar juego")])
 menu_pausa = Menu(opciones = [("jugando", "Seguir jugando"),
@@ -608,19 +619,23 @@ menu_pausa = Menu(opciones = [("jugando", "Seguir jugando"),
                               ("cerrar", "Cerrar juego")])
 menu_mapas = MenuMapas()
 
+def menu_de_inicio():
+    menu_inicial.desplegar()
+
+
 def jugar():
     
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]: jugador.mover((-1,0))
-    if keys[pygame.K_RIGHT]: jugador.mover((1,0))
-    if keys[pygame.K_UP]: jugador.mover((0,-1))
-    if keys[pygame.K_DOWN]: jugador.mover((0,1))
+    if keys[pygame.K_LEFT]: juego.jugador.mover((-1,0))
+    if keys[pygame.K_RIGHT]: juego.jugador.mover((1,0))
+    if keys[pygame.K_UP]: juego.jugador.mover((0,-1))
+    if keys[pygame.K_DOWN]: juego.jugador.mover((0,1))
     if keys[pygame.K_p]: juego.estado_de_juego="pausa"
 
     pantalla.fill((0, 0, 0))
     super_mapa.superficie.fill((0,200,0,0))
     mapas.mostrar()
-    jugador.mostrar()
+    juego.jugador.mostrar()
     super_mapa.mostrar()
 
 
@@ -639,7 +654,7 @@ while juego.activo:
     if juego.estado_de_juego == "jugando":
         jugar()
     elif juego.estado_de_juego == "menu inicial":
-        menu_inicial.desplegar()
+        menu_de_inicio()
     elif juego.estado_de_juego == "pausa":
         menu_pausa.desplegar()
     elif juego.estado_de_juego == "mapas":
