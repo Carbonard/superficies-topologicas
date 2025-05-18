@@ -28,7 +28,7 @@ class InformacionJuego():
         self.universo=None
 
 
-juego = InformacionJuego(800,400,4,4)
+juego = InformacionJuego(800,600,4,4)
 
 pantalla = pygame.display.set_mode(
     (juego.ancho_mapa,juego.alto_mapa),
@@ -197,7 +197,6 @@ class Fondos(SuperMapa):
 
         for i in range(0,juego.n):
             for j in range(0,juego.m):
-                print("creando con",juego.universo.invertir(i,j))
                 self.superficie.blit(pygame.transform.flip(surface,*juego.universo.invertir(i,j)),UniversoToroidal.posiciones(i,j,0,0))
         # fondo = pygame.Surface((juego.ancho_mapa,juego.alto_mapa))
         # semi_diagonal = math.sqrt(juego.ancho_mapa**2+juego.alto_mapa**2)
@@ -413,16 +412,20 @@ class Menu:
         # self.opciones = opciones
         self.opciones = []
         for i, (op,texto) in enumerate(opciones):
-            opcion = {"juego": op,
-                    "texto": self.fuente.render(texto, True, self.color_fuente),
-                    "texto resaltado": self.fuente.render(texto, True, self.color_fuente_resaltado),
-                    "texto clicado": self.fuente.render(texto, True, self.color_fuente_clicado),
-                    "caja": None}
-            opcion["caja"] = opcion["texto"].get_rect(topleft = (self.x + self.margen_izquierdo,
-                                                                 self.y + self.margen_superior + i*self.tamaño_fuente*1.5))
+            opcion = self.crear_opcion(i,op,texto)
             self.opciones.append(opcion)
 
         self.opcion_clicada = None
+
+    def crear_opcion(self,i,op,texto):
+        opcion = {"juego": op,
+                 "texto": self.fuente.render(texto, True, self.color_fuente),
+                 "texto resaltado": self.fuente.render(texto, True, self.color_fuente_resaltado),
+                 "texto clicado": self.fuente.render(texto, True, self.color_fuente_clicado),
+                 "caja": None}
+        opcion["caja"] = opcion["texto"].get_rect(topleft = (self.x + self.margen_izquierdo,
+                                                             self.y + self.margen_superior + i*self.tamaño_fuente*1.5))
+        return opcion
 
     def ajustar_tamaño(self):
 
@@ -586,9 +589,8 @@ def dibujar_plano_proyectivo_animado(surface):
 class MenuMapas(Menu):
     def __init__(self):
         super().__init__([("menu inicial", "Mundo Toroidal"),
-                                   ("menu inicial", "Botella de Klein"),
-                                   ("menu inicial", "Plano Proyectivo")])
-        print(self.opciones)
+                          ("menu inicial", "Botella de Klein"),
+                          ("menu inicial", "Plano Proyectivo")])
         self.opciones[0]["universo"] = "toro"
         self.opciones[1]["universo"] = "Klein"
         self.opciones[2]["universo"] = "proyectivo"
@@ -604,6 +606,19 @@ class MenuMapas(Menu):
         if opcion["universo"]=="proyectivo": juego.universo=UniversoProyectivo()
         mapas.crear_fondo()
 
+class MenuConfig(Menu):
+    def __init__(self):
+        super().__init__([("configuracion", "Cambiar a cámara fija" if juego.camara_subjetiva else "Cambiar a cámara subjetiva"),
+                          ("menu inicial", "Volver a menú")])
+        self.opciones[0]["nombre"] = "camara"
+        self.opciones[1]["nombre"] = "volver"
+    
+    def pulsar_boton(self, opcion):
+        if opcion["nombre"] == "camara":
+            juego.camara_subjetiva = not juego.camara_subjetiva
+            self.opciones[0] = self.crear_opcion(0, opcion["juego"], "Cambiar a cámara fija" if juego.camara_subjetiva else "Cambiar a cámara subjetiva")
+            self.opciones[0]["nombre"] = "camara"
+
 
 juego.jugador = Jugador(ancho=60,alto=60,visible=True)
 ventana = InformacionVentana()
@@ -613,11 +628,13 @@ mapas = Fondos()
 
 menu_inicial = MenuInicio(opciones = [("jugando", "Empezar a jugar"),
                                 ("mapas", "Elegir mapa"),
+                                ("configuracion", "Configuración"),
                                 ("cerrar", "Cerrar juego")])
 menu_pausa = Menu(opciones = [("jugando", "Seguir jugando"),
                               ("menu inicial", "Volver al menú inicial"),
                               ("cerrar", "Cerrar juego")])
 menu_mapas = MenuMapas()
+menu_configuracion = MenuConfig()
 
 def menu_de_inicio():
     menu_inicial.desplegar()
@@ -631,6 +648,8 @@ def jugar():
     if keys[pygame.K_UP]: juego.jugador.mover((0,-1))
     if keys[pygame.K_DOWN]: juego.jugador.mover((0,1))
     if keys[pygame.K_p]: juego.estado_de_juego="pausa"
+    if keys[pygame.K_i]: juego.estado_de_juego="menu inicial"
+    if keys[pygame.K_m]: juego.estado_de_juego="mapas"
 
     pantalla.fill((0, 0, 0))
     super_mapa.superficie.fill((0,200,0,0))
@@ -659,6 +678,8 @@ while juego.activo:
         menu_pausa.desplegar()
     elif juego.estado_de_juego == "mapas":
         menu_mapas.desplegar()
+    elif juego.estado_de_juego == "configuracion":
+        menu_configuracion.desplegar()
     elif juego.estado_de_juego == "cerrar":
         juego.activo = False
     else:
