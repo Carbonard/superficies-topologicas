@@ -1,8 +1,4 @@
 import pygame
-# import math
-# import numpy as np
-# from random import random
-# from pathlib import Path
 
 from dibujos import *
 from informaciones import *
@@ -10,7 +6,7 @@ from universos import *
 from pantallas import *
 from elementos_del_mapa import *
 from menus import *
-	
+
 pygame.init()
 
 ctx = Contexto()

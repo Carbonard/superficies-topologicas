@@ -96,12 +96,13 @@ class Jugador(Movil):
 		self.ventana = ventana
 		self.x_visible = self.x
 		self.y_visible = self.y
-		self.original = (x,y,ancho,alto,velocidad)
+		self.original = (x,y,velocidad)
 	
 	def reset(self):
-		self.x, self.y, self.ancho, self.alto, self.velocidad = self.original
+		self.x, self.y, self.velocidad = self.original
 		self.x_visible = self.x
 		self.y_visible = self.y
+		self.invertido = (False, False)
 
 	def mover(self,direccion):
 		# Moverse según si está invertido o no
