@@ -35,7 +35,7 @@ ctx.ventana = ventana
 super_mapa = SuperMapa(ctx)
 ctx.super_mapa = super_mapa
 
-juego.jugador = Jugador(ventana, infomapa, juego, super_mapa, ancho=60, alto=60, x=infomapa.ancho_mapa//2, y=infomapa.alto_mapa//2)
+juego.jugador = Jugador(ctx, ancho=60, alto=60, x=infomapa.ancho_mapa//2, y=infomapa.alto_mapa//2)
 juego.universo = UniversoToroidal(infomapa)
 
 fondo = Fondos(ctx)

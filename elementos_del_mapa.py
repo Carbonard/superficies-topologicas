@@ -2,10 +2,10 @@ from dibujos import dibujar_robot
 import pygame
 
 class Objeto:
-	def __init__(self, infomapa, juego, super_mapa, nombre="Objeto", x=0, y=0, ancho=0, alto=0, img=None, visible=False):
-		self.super_mapa = super_mapa
-		self.infomapa = infomapa
-		self.juego = juego
+	def __init__(self, ctx, nombre="Objeto", x=0, y=0, ancho=0, alto=0, img=None, visible=False):
+		self.super_mapa = ctx.super_mapa
+		self.infomapa = ctx.infomapa
+		self.juego = ctx.juego
 		self.nombre=nombre
 		self.x=x
 		self.y=y
@@ -64,8 +64,8 @@ class Objeto:
 
 # -------------------------------------------------- MOVIL --------------------------------------------------
 class Movil(Objeto):
-	def __init__(self, infomapa, juego, super_mapa, nombre="", x=0, y=0, ancho=0, alto=0, img=None, visible=False, velocidad=10):
-		super().__init__(infomapa, juego, super_mapa, nombre, x, y, ancho, alto, img, visible)
+	def __init__(self, ctx, nombre="", x=0, y=0, ancho=0, alto=0, img=None, visible=False, velocidad=10):
+		super().__init__(ctx, nombre, x, y, ancho, alto, img, visible)
 		self.velocidad = velocidad
 
 	def mover(self,direccion):
@@ -91,9 +91,9 @@ class Movil(Objeto):
 # # -------------------------------------------------- PERSONAJE --------------------------------------------------
 
 class Jugador(Movil):
-	def __init__(self, ventana, infomapa, juego, super_mapa, nombre="", x=0, y=0, ancho=0, alto=0, img=None, visible=True, velocidad=10):
-		super().__init__(infomapa, juego, super_mapa, nombre, x, y, ancho, alto, img, visible, velocidad)
-		self.ventana = ventana
+	def __init__(self, ctx, nombre="", x=0, y=0, ancho=0, alto=0, img=None, visible=True, velocidad=10):
+		super().__init__(ctx, nombre, x, y, ancho, alto, img, visible, velocidad)
+		self.ventana = ctx.ventana
 		self.x_visible = self.x
 		self.y_visible = self.y
 		self.original = (x,y,velocidad)
