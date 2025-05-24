@@ -1,5 +1,6 @@
 from dibujos import dibujar_toro_animado, dibujar_botella_klein_con_lineas, dibujar_plano_proyectivo_animado
 from universos import *
+from elementos_del_mapa import calcular_obstaculos
 import pygame
 
 class Menu:
@@ -97,6 +98,8 @@ class MenuInicio(Menu):
 		self.juego.celda_visible_i=1
 		self.juego.celda_visible_j=1
 		self.ventana.actualizar_posicion()
+		calcular_obstaculos(self.juego)
+
 
 class MenuMapas(Menu):
 	def __init__(self, ctx):

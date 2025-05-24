@@ -111,14 +111,14 @@ def dibujar_robot(tamaño):
     superficie = pygame.Surface((tamaño, tamaño), pygame.SRCALPHA)
     
     # Cuerpo (cuadrado principal)
-    pygame.draw.rect(superficie, (100, 200, 100), (10, 10, tamaño-20, tamaño-20), border_radius=5)
+    pygame.draw.rect(superficie, (100, 200, 100), (0, 0, tamaño, tamaño), border_radius=5)
     
     # Ojos (puntos brillantes)
-    # pygame.draw.circle(superficie, (255, 255, 0), (tamaño//3, tamaño//3), 5)
-    pygame.draw.circle(superficie, (255, 255, 0), (2*tamaño//3, tamaño//3), 5)
+    pygame.draw.circle(superficie, (255, 255, 0), (tamaño//3, tamaño//3), 4)
+    pygame.draw.circle(superficie, (255, 255, 0), (2*tamaño//3, tamaño//3), 4)
     
     # Boca (línea con efecto "píxel art")
-    for x in range(tamaño//3, 2*tamaño//3, 5):
+    for x in range(tamaño//4, 3*tamaño//4, 5):
         pygame.draw.line(superficie, (255, 50, 50), (x, 2*tamaño//3), (x+3, 2*tamaño//3), 3)
     
     return superficie

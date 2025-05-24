@@ -35,7 +35,7 @@ ctx.ventana = ventana
 super_mapa = SuperMapa(ctx)
 ctx.super_mapa = super_mapa
 
-juego.jugador = Jugador(ctx, ancho=60, alto=60, x=infomapa.ancho_mapa//2, y=infomapa.alto_mapa//2)
+juego.jugador = Jugador(ctx, ancho=40, alto=40, x=infomapa.ancho_mapa//2, y=infomapa.alto_mapa//2, velocidad = 10)
 juego.universo = UniversoToroidal(infomapa)
 
 fondo = Fondos(ctx)
@@ -51,6 +51,13 @@ menu_pausa = Menu(ctx, opciones = [("jugando", "Seguir jugando"),
 menu_mapas = MenuMapas(ctx)
 menu_configuracion = MenuConfig(ctx)
 
+pared1 = ParedHorizontal(ctx, 0, infomapa.ancho_mapa/3, 0, color=(250,0,0))
+pared2 = ParedVertical(ctx, infomapa.ancho_mapa/3, 0, infomapa.alto_mapa*2/3, color=(250,0,0))
+pared3 = ParedHorizontal(ctx, infomapa.ancho_mapa/3, infomapa.ancho_mapa, infomapa.alto_mapa*2/3, color=(250,0,0))
+pared4 = ParedVertical(ctx, infomapa.ancho_mapa, infomapa.alto_mapa*2/3, infomapa.alto_mapa, color=(250,0,0))
+
+
+
 def jugar():
 	
 	keys = pygame.key.get_pressed()
@@ -65,7 +72,11 @@ def jugar():
 	pantalla.fill((0, 0, 0))
 	super_mapa.superficie.fill((0,200,0,0))
 	fondo.mostrar()
+	for paredd in paredes:
+		paredd.mostrar()
 	juego.jugador.mostrar()
+	# for rect in obstaculos:
+	# 	pygame.draw.rect(pantalla, (0, 250, 0), rect)
 	super_mapa.mostrar()
 
 
@@ -80,7 +91,7 @@ while juego.activo:
 			juego.raton_clicado = True
 		if evento.type == pygame.MOUSEBUTTONUP and evento.button == 1:
 			juego.raton_clicado = False
-	
+
 	if juego.estado_de_juego == "jugando":
 		jugar()
 	elif juego.estado_de_juego == "menu inicial":
